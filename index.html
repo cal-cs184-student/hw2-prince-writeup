@@ -53,36 +53,130 @@
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
 		<h3>Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			Given \(n+1\) control points \(P_0,\ldots,P_n\), de Casteljau's algorithm
+			repeatedly linearly interpolates between every pair of adjacent points. Let
+			\(P_i^{(0)}=P_i\). At recursion level \(r\), the new points are
+		</p>
+		\[
+			P_i^{(r)}(t)=(1-t)P_i^{(r-1)}(t)+tP_{i+1}^{(r-1)}(t),
+			\qquad 0\leq t\leq 1.
+		\]
+		<p>
+			Each level contains one fewer point than the previous level, so after \(n\)
+			levels only one point remains. The point on the Bezier curve evaluated at
+			parameter \(t\) is therefore
+		</p>
+		\[
+			B(t)=P_0^{(n)}(t).
+		\]
+		<p>
+			For my six-control-point curve, \(n=5\), so the final point is
+			\(B(t)=P_0^{(5)}(t)\).
+		</p>
+		<p>
+			Evaluating the algorithm for values of \(t\)
+			throughout \([0,1]\) traces the entire curve.
+		</p>
+		<p>
+			In my implementation, <code>evaluateStep</code> loops over adjacent input
+			points and appends
+			<code>(1 - t) * points[i] + t * points[i + 1]</code> to a new vector. It
+			returns this vector, which always has one fewer point. Repeating the step until
+			one point remains evaluates the curve at the selected \(t\); sampling many
+			values of \(t\) draws the complete curve.
+		</p>
 
-		<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+		<h4>Evaluation of a custom six-control-point curve</h4>
+		<p>
+			The following sequence shows every level of de Casteljau evaluation at
+			\(t=0.5\). White squares are the original control points, blue squares are
+			intermediate points, and the red square is the final point on the curve.
+		</p>
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="assets/teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="assets/bzc_0.png" style="width: 100%;" alt="Six original Bezier control points"/>
+				  <figcaption>Level 0: six original control points.</figcaption>
 				</td>
 				<td style="text-align: center;">
-				  <img src="assets/teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="assets/bzc_1.png" style="width: 100%;" alt="First level of de Casteljau evaluation"/>
+				  <figcaption>Level 1: five interpolated points.</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/bzc_2.png" style="width: 100%;" alt="Second level of de Casteljau evaluation"/>
+				  <figcaption>Level 2: four interpolated points.</figcaption>
 				</td>
 			  </tr>
 			  <tr>
 				<td style="text-align: center;">
-				  <img src="assets/teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="assets/bzc_3.png" style="width: 100%;" alt="Third level of de Casteljau evaluation"/>
+				  <figcaption>Level 3: three interpolated points.</figcaption>
 				</td>
 				<td style="text-align: center;">
-				  <img src="assets/teapot.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
+				  <img src="assets/bzc_4.png" style="width: 100%;" alt="Fourth level of de Casteljau evaluation"/>
+				  <figcaption>Level 4: two interpolated points.</figcaption>
+				</td>
+				<td style="text-align: center;">
+				  <img src="assets/bzc_5.png" style="width: 100%;" alt="Final point of de Casteljau evaluation"/>
+				  <figcaption>Level 5: the final evaluated point.</figcaption>
 				</td>
 			  </tr>
 			</table>
 		</div>
 
+		<figure>
+			<img src="assets/bzc_eval.png" alt="Completed Bezier curve and its de Casteljau evaluation" style="width: 80%;"/>
+			<figcaption>The completed curve (green) together with the evaluation at \(t=0.5\).</figcaption>
+		</figure>
+
+		<h4>Effect of changing the control points and parameter</h4>
+		<p>
+			I moved the original control points to create a different curve and used mouse
+			scrolling to change \(t\). Moving a control point changes the shape of the
+			curve, while changing \(t\) moves the red evaluated point along the same curve
+			and recomputes all intermediate interpolation levels.
+		</p>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/bzc_move1.png" alt="Modified Bezier curve at one parameter value" style="width: 100%;"/>
+				<figcaption>Modified control points and the first selected value of \(t\).</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/bzc_move2.png" alt="Modified Bezier curve at another parameter value" style="width: 100%;"/>
+				<figcaption>The modified curve at a different value of \(t\).</figcaption>
+			</figure>
+		</div>
+
 		<h3>Part 2: Bezier surfaces with separable 1D de Casteljau</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			A Bezier surface is defined by a rectangular grid of 3D control points and
+			two parameters, \(u\) and \(v\), which represent positions along the two
+			parametric directions of the surface. Since a Bezier surface is separable,
+			it can be evaluated by applying the 1D de Casteljau algorithm twice.
+			<code>BezierPatch::evaluateStep(points, t)</code> performs one level of
+			linear interpolation between adjacent 3D points and returns a vector with one
+			fewer point. <code>BezierPatch::evaluate1D(points, t)</code> repeatedly calls
+			<code>evaluateStep</code> until only one point remains, thereby evaluating a
+			1D Bezier curve at \(t\).
+		</p>
+		<p>
+			To evaluate a point on the surface,
+			<code>BezierPatch::evaluate(u, v)</code> first calls
+			<code>evaluate1D</code> on every row of the control-point grid using \(u\).
+			This reduces each row to one point and produces a list of intermediate 3D
+			points. It then calls <code>evaluate1D</code> on that list using \(v\),
+			reducing the list to the final point on the Bezier surface. Repeating this
+			process for sampled pairs \((u,v)\in[0,1]^2\) generates the entire surface.
+		</p>
+		<figure>
+			<img src="assets/bzs.png" alt="Teapot rendered from evaluated Bezier surface patches" style="width: 80%;"/>
+			<figcaption>
+				The teapot generated by sampling the Bezier surface patches over \(u\)
+				and \(v\).
+			</figcaption>
+		</figure>
 
 		<h2>Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
@@ -93,10 +187,349 @@
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 		<h3>Part 5: Edge split</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			For an interior edge \(e0=(b,c)\), the two incident faces are initially
+			\(f0=(b,c,a)\) and \(f1=(c,b,d)\). The split inserts a new vertex \(m\) at
+			the midpoint of \(b\) and \(c\), divides the original edge into
+			\((b,m)\) and \((m,c)\), and connects \(m\) to the two opposite vertices
+			\(a\) and \(d\). The original two triangles are therefore replaced by four
+			triangles.
+		</p>
+		<p>
+			Before modifying any iterators, I save the entire local neighborhood in
+			iterators: the six original halfedges <code>h00</code>,
+			<code>h10</code>, <code>h20</code>, <code>h01</code>,
+			<code>h11</code>, and <code>h21</code>; the exterior twins; the surrounding
+			edges; the two faces; and the four vertices. This is important because once a
+			<code>next</code> or <code>twin</code> iterator is changed, traversing the mesh
+			can no longer be used to recover the original neighborhood reliably.
+		</p>
+
+		<figure>
+			<img src="assets/edge_split_interior.svg" alt="Topology of an interior edge before and after splitting" style="width: 100%;"/>
+		</figure>
+
+		<p>
+			I create one vertex <code>m</code>, three edges <code>mc</code>,
+			<code>ma</code>, and <code>md</code>, six halfedges for those edges, and two
+			new faces <code>f2</code> and <code>f3</code>. The original
+			<code>e0</code>, <code>h00</code>, and <code>h01</code> are reused for the
+			edge \((b,m)\). I then rebuild each face as the following closed halfedge
+			cycle. Every halfedge in a row is assigned to that row's face.
+		</p>
+
+		<table style="width: 100%; border-collapse: collapse; text-align: left;">
+			<tr>
+				<th style="border: 1px solid #aaa; padding: 8px;">Face</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Vertex cycle</th>
+				<th style="border: 1px solid #aaa; padding: 8px;"><code>next</code> cycle and face assignment</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Representative</th>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0</code> (reused)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(b\rightarrow m\rightarrow a\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h00 &rarr; h_ma &rarr; h20 &rarr; h00</code>;
+					all three use <code>face = f0</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0-&gt;halfedge() = h00</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1</code> (reused)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(m\rightarrow b\rightarrow d\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h01 &rarr; h11 &rarr; h_dm &rarr; h01</code>;
+					all three use <code>face = f1</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1-&gt;halfedge() = h01</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2</code> (new)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(m\rightarrow c\rightarrow a\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h_mc &rarr; h10 &rarr; h_am &rarr; h_mc</code>;
+					all three use <code>face = f2</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2-&gt;halfedge() = h_mc</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f3</code> (new)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(c\rightarrow m\rightarrow d\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h_cm &rarr; h_md &rarr; h21 &rarr; h_cm</code>;
+					all three use <code>face = f3</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f3-&gt;halfedge() = h_cm</code></td>
+			</tr>
+		</table>
+
+		<p>
+			After establishing these four cycles, I assign the twin pairs
+			<code>(h00, h01)</code>, <code>(h_mc, h_cm)</code>,
+			<code>(h_ma, h_am)</code>, and <code>(h_md, h_dm)</code>, and set every
+			halfedge's vertex, edge, and face iterators with <code>setNeighbors</code>.
+			I set the edge representatives to <code>e0-&gt;halfedge() = h00</code>,
+			<code>mc-&gt;halfedge() = h_mc</code>,
+			<code>ma-&gt;halfedge() = h_ma</code>, and
+			<code>md-&gt;halfedge() = h_md</code>. The new vertex uses
+			<code>h01</code>, which points from \(m\) toward \(b\), as its representative
+			halfedge. Since <code>h01</code> originally started at \(c\), I redirect
+			<code>c-&gt;halfedge()</code> to <code>h10</code> when necessary.
+		</p>
+		<p>
+			For Loop subdivision bookkeeping, I mark <code>m</code> as new. The two
+			segments of the original edge, represented by <code>e0</code> and
+			<code>mc</code>, are marked old, while the new cross edges <code>ma</code>
+			and <code>md</code> are marked new. My main debugging strategy was to separate
+			the operation into three phases: record the original neighborhood, allocate
+			all new elements, and only then assign every iterator in the affected region.
+			Explicitly resetting all five iterators of each local halfedge helped avoid
+			stale references and made repeated split and flip tests reliable.
+		</p>
+
+		<h4>Results</h4>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/split0.png" alt="Teapot mesh before an edge split" style="width: 100%;"/>
+				<figcaption>Before splitting the selected interior edge.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/split1.png" alt="Teapot mesh after an edge split" style="width: 100%;"/>
+				<figcaption>After the edge split; two triangles have become four.</figcaption>
+			</figure>
+		</div>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center; margin-top: 18px;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/split3.png" alt="Teapot mesh before combined split and flip operations" style="width: 100%;"/>
+				<figcaption>Before applying additional split and flip operations.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/split4.png" alt="Teapot mesh after combined split and flip operations" style="width: 100%;"/>
+				<figcaption>After a combination of nearby edge splits and edge flips.</figcaption>
+			</figure>
+		</div>
+
+		<h4>Extra Credit: Boundary edge split</h4>
+		<p>
+			For a boundary edge, only one adjacent face is an interior triangle. I first
+			normalize the orientation of the input edge: if <code>e0-&gt;halfedge()</code>
+			is a boundary halfedge, I replace it with its twin. As a result,
+			<code>h00</code> always belongs to the interior face <code>f0</code>, while
+			<code>h01 = h00-&gt;twin()</code> belongs to <code>boundaryface</code>. I save
+			<code>h11 = h01-&gt;next()</code> before changing any iterators because it is
+			the first halfedge in the remainder of the existing boundary loop.
+		</p>
+
+		<figure>
+			<img src="assets/edge_split_boundary.svg" alt="Topology of a boundary edge before and after splitting" style="width: 100%;"/>
+		</figure>
+
+		<p>
+			I insert <code>m</code> at the midpoint of \(b\) and \(c\). Compared with an
+			interior split, this case creates only two edges, <code>mc</code> and
+			<code>ma</code>; four halfedges, <code>h_mc</code>, <code>h_mb</code>,
+			<code>h_ma</code>, and <code>h_am</code>; and one new interior face
+			<code>f2</code>. The original edge <code>e0</code> is reused for
+			\((b,m)\). The interior face and boundary loop are then rebuilt as follows:
+		</p>
+
+		<table style="width: 100%; border-collapse: collapse; text-align: left;">
+			<tr>
+				<th style="border: 1px solid #aaa; padding: 8px;">Region</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Vertex cycle</th>
+				<th style="border: 1px solid #aaa; padding: 8px;"><code>next</code> sequence</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Representative</th>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0</code> (reused)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(b\rightarrow m\rightarrow a\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h00 &rarr; h_ma &rarr; h20 &rarr; h00</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0-&gt;halfedge() = h00</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2</code> (new)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(m\rightarrow c\rightarrow a\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h_mc &rarr; h10 &rarr; h_am &rarr; h_mc</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2-&gt;halfedge() = h_mc</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>boundaryface</code> (reused)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">\(c\rightarrow m\rightarrow b\rightarrow\cdots\)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h01 &rarr; h_mb &rarr; h11 &rarr; ...</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>boundaryface-&gt;halfedge() = h01</code></td>
+			</tr>
+		</table>
+
+		<p>
+			The new twin pairs are <code>(h00, h_mb)</code>,
+			<code>(h_mc, h01)</code>, and <code>(h_ma, h_am)</code>. In particular,
+			inserting <code>h_mb</code> between <code>h01</code> and the saved
+			<code>h11</code> preserves the original boundary loop. I set
+			<code>e0-&gt;halfedge() = h00</code>,
+			<code>mc-&gt;halfedge() = h_mc</code>, and
+			<code>ma-&gt;halfedge() = h_ma</code>. The new vertex uses
+			<code>h_mb</code> as its representative halfedge, so it points along the
+			split boundary edge rather than the new cross edge.
+		</p>
+		<p>
+			For Loop subdivision bookkeeping, <code>m</code> and <code>ma</code> are
+			marked new. The two boundary segments <code>e0</code> and <code>mc</code>
+			are marked old because they are the two parts of the original edge.
+		</p>
 
 		<h3>Part 6: Loop subdivision for mesh upsampling</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			My Loop subdivision implementation separates geometry calculations from
+			topology changes. All new positions are computed from the original mesh and
+			stored in <code>newPosition</code> before any edge is split. This prevents
+			vertices created or moved earlier in the process from affecting the weights
+			used later in the same subdivision step.
+		</p>
+
+		<h4>1. Compute updated positions for the original vertices</h4>
+		<p>
+			I first mark every original vertex with <code>isNew = false</code>. For each
+			vertex \(v\), I traverse its one-ring neighborhood with
+			<code>h = h-&gt;twin()-&gt;next()</code>, count its degree \(n\), and sum the
+			positions of its neighbors. For an interior vertex, I set \(u=3/16\) when
+			\(n=3\), and \(u=3/(8n)\) otherwise. I then compute
+		</p>
+		\[
+			v_{\text{new}}=(1-nu)v+u\sum_{i=1}^{n}v_i.
+		\]
+		<p>
+			The result is stored in <code>Vertex::newPosition</code>; the current
+			<code>position</code> is not changed yet.
+		</p>
+
+		<h4>2. Compute the position of the new vertex on each original edge</h4>
+		<p>
+			For an interior edge with endpoints \(A\) and \(B\) and opposite vertices
+			\(C\) and \(D\), I store
+		</p>
+		\[
+			e_{\text{new}}=\frac{3}{8}(A+B)+\frac{1}{8}(C+D)
+		\]
+		<p>
+			in <code>Edge::newPosition</code>. While performing this pass, I mark every
+			original edge as old and save its iterator in <code>originalEdges</code>.
+		</p>
+
+		<h4>3. Split only the original edges</h4>
+		<p>
+			I iterate over <code>originalEdges</code> rather than the live mesh edge list.
+			This is necessary because <code>splitEdge</code> creates additional edges; if
+			those edges were also visited, the loop would continue splitting its own
+			results. Before each split, I copy the edge's saved
+			<code>newPosition</code>. The vertex returned by
+			<code>mesh.splitEdge(e)</code> is marked new, and the copied position is stored
+			in its <code>newPosition</code>.
+		</p>
+
+		<h4>4. Flip the new edges that connect old and new vertices</h4>
+		<p>
+			After all original edges have been split, I iterate over the updated edge
+			list. I skip every edge whose <code>isNew</code> flag is false. For each new
+			edge, I compare the <code>isNew</code> flags of its two endpoints and flip the
+			edge exactly when one endpoint is old and the other is new. Together with the
+			splits, these flips replace every original triangle with four smaller
+			triangles having the connectivity required by Loop subdivision.
+		</p>
+
+		<h4>5. Commit the new geometry</h4>
+		<p>
+			Finally, after all topology operations are complete, I copy each vertex's
+			<code>newPosition</code> into <code>position</code>. Delaying this assignment
+			until the end ensures that every weight in the current iteration was computed
+			from the same original geometry.
+		</p>
+
+		<h4>Subdivision results</h4>
+		<p>
+			Each subdivision step increases the triangle density and smooths the control
+			mesh. On the teapot, the initially visible facets become progressively less
+			pronounced, while the body, handle, and spout develop smoother silhouettes.
+		</p>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
+			<figure style="width: 33.33%; margin: 0;">
+				<img src="assets/teapot0.png" alt="Original teapot before Loop subdivision" style="width: 100%;"/>
+				<figcaption>Original teapot.</figcaption>
+			</figure>
+			<figure style="width: 33.33%; margin: 0;">
+				<img src="assets/teapot1.png" alt="Teapot after one Loop subdivision step" style="width: 100%;"/>
+				<figcaption>After one subdivision step.</figcaption>
+			</figure>
+			<figure style="width: 33.33%; margin: 0;">
+				<img src="assets/teapot2.png" alt="Teapot after two Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>After two subdivision steps.</figcaption>
+			</figure>
+		</div>
+
+		<h4>Behavior of sharp features and the cube</h4>
+		<p>
+			Loop subdivision is an approximating scheme, so the original vertices
+			generally move and sharp corners and edges become rounded. Adding support
+			edges by pre-splitting edges near a sharp feature gives the subdivision more
+			control points close to that feature and reduces this rounding.
+		</p>
+		<p>
+			The cube also becomes slightly asymmetric after repeated subdivision. Each
+			quadrilateral face is represented by two triangles, and the chosen face
+			diagonals do not give all cube corners identical one-ring neighborhoods.
+			Because Loop weights depend on vertex degree and neighboring positions, this
+			asymmetric triangulation produces unequal updates even though the original
+			cube geometry is symmetric. Pre-splitting the faces and flipping diagonals to
+			create a balanced, symmetric triangulation gives corresponding corners the
+			same degree and one-ring structure, reducing the asymmetry.
+		</p>
+		<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; text-align: center;">
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/cube0.png" alt="Original cube before Loop subdivision" style="width: 100%;"/>
+				<figcaption>Original cube.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/cube1.png" alt="Cube after one Loop subdivision step" style="width: 100%;"/>
+				<figcaption>After one step.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/cube2.png" alt="Cube after two Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>After two steps.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/cube3.png" alt="Cube after three Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>After three steps.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/cube4.png" alt="Cube after four Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>After four steps.</figcaption>
+			</figure>
+		</div>
+
+		<h4>Extra Credit: Boundary support in Loop subdivision</h4>
+		<p>
+			I extended Loop subdivision to meshes with boundaries by using separate
+			position rules for boundary vertices and boundary edges. For a boundary
+			vertex \(v\), I sum only its two boundary neighbors \(v_{b0}\) and
+			\(v_{b1}\) and compute
+		</p>
+		\[
+			v_{\text{new}}=\frac{3}{4}v+
+			\frac{1}{8}\left(v_{b0}+v_{b1}\right).
+		\]
+		<p>
+			For a boundary edge with endpoints \(A\) and \(B\), the new vertex is placed
+			at the midpoint, \(e_{\text{new}}=(A+B)/2\), rather than using the four-point
+			interior-edge rule. During the split stage, these edges are handled by my
+			boundary-aware <code>splitEdge</code> implementation from Part 5. The remaining
+			stages use the same <code>isNew</code> bookkeeping and delayed position update
+			as the interior algorithm.
+		</p>
 
 		<h2>(Optional) Section III: Potential Extra Credit - Art Competition: Model something Creative</h2>
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
