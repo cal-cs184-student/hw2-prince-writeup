@@ -28,27 +28,44 @@
 	<body>
 		<div class="container">
 		<h1>CS184/284A Fall 2026 Homework 2 Write-Up</h1>
-		<div style="text-align: center;">Names: </div>
+		<div style="text-align: center;">Names: Dongyang Dai and Zihan Wang</div>
 
 		<br>
 
-		Link to webpage: (TODO) <a href="https://cs184.eecs.berkeley.edu/fa26">cs184.eecs.berkeley.edu/fa26</a>
+		<strong>Webpage:</strong> <a href="https://cal-cs184-student.github.io/hw2-prince-writeup/">cal-cs184-student.github.io/hw2-prince-writeup/</a>
 
 		<br>
 		
-		Link to GitHub repository: (TODO) <a href="https://cs184.eecs.berkeley.edu/fa26">cs184.eecs.berkeley.edu/fa26</a>
+		<strong>Repository:</strong> <a href="https://github.com/cal-cs184-student/hw2-prince">github.com/cal-cs184-student/hw2-prince</a>
 
-		<figure>
-			<img src="assets/teapot.png" alt="Teapot" style="width:50%"/>
-			<figcaption>You can add images with captions!</figcaption>
-		</figure>
+		<br>
 
 		<!--
 		We've already added one heading per part, to make your write-up as navigable when grading. Please fit your write-up within these sections!
 		-->
 
 		<h2>Overview</h2>
-		Give a high-level overview of what you implemented in this homework. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the homework.
+		<p>
+			In this homework, I implemented several techniques for constructing,
+			modifying, and smoothing geometric models. I used de Casteljau's algorithm
+			to evaluate Bezier curves and surfaces, computed area-weighted vertex normals
+			for smooth shading, and implemented local edge flip and edge split operations
+			on a half-edge mesh. I then combined these mesh operations to implement Loop
+			subdivision, including support for boundary edges. As an extra exploration, I
+			also implemented Root-3 subdivision and compared its face-centered refinement
+			with the edge-centered refinement used by Loop subdivision.
+		</p>
+		<p>
+			The most important lesson I learned is that modifying a complex data structure
+			requires a systematic approach. A half-edge mesh can initially seem confusing
+			because every local operation affects many related iterators at once. However,
+			the process becomes manageable when I first record the complete local
+			neighborhood, create all required elements, and then update every iterator in
+			a fixed order. Clear naming conventions and consistent rules for assigning
+			<code>next</code>, <code>twin</code>, vertex, edge, and face relationships
+			prevent the implementation from becoming disorganized. Following a deliberate
+			sequence made the code easier to reason about, debug, and verify.
+		</p>
 
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
@@ -181,10 +198,170 @@
 		<h2>Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
 		<h3>Part 3: Area-weighted vertex normals</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			To compute the normal at a vertex, I begin with the vertex's representative
+			halfedge and traverse its entire one-ring neighborhood using
+			<code>h = h-&gt;twin()-&gt;next()</code>. This moves to the next face incident
+			to the same vertex. Boundary faces do not represent surface triangles, so I
+			skip any halfedge whose face satisfies <code>isBoundary()</code>.
+		</p>
+		<p>
+			For each incident triangle, I let \(p_0\) be the current vertex and obtain
+			\(p_1\) and \(p_2\) from the next two halfedges. I then compute the
+			unnormalized face normal
+		</p>
+		\[
+			N_f=(p_1-p_0)\times(p_2-p_0).
+		\]
+		<p>
+			The magnitude of this cross product is twice the area of the triangle.
+			Therefore, adding these unnormalized normals automatically gives larger
+			triangles proportionally more influence than smaller triangles. After the
+			traversal returns to the starting halfedge, I normalize the accumulated
+			vector:
+		</p>
+		\[
+			n_v=\frac{\sum_{f\ni v}N_f}
+			{\left\|\sum_{f\ni v}N_f\right\|}.
+		\]
+		<p>
+			The consistent halfedge winding keeps all incident face normals oriented in
+			the same direction. Returning <code>n.unit()</code> produces the unit vertex
+			normal used for Phong interpolation across the surrounding triangles.
+		</p>
+		<p>
+			Applying these area-weighted vertex normals does not change the mesh geometry
+			or add any triangles. It changes only how lighting is evaluated. With flat
+			shading, each triangle uses one face normal, so the boundaries between
+			triangles are clearly visible. With Phong shading, the vertex normals are
+			interpolated across each triangle, producing gradual lighting changes between
+			neighboring faces. As a result, the teapot appears much smoother even though
+			its underlying triangle mesh is unchanged.
+		</p>
+
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/before_normal.png" alt="Teapot rendered with flat face normals" style="width: 100%;"/>
+				<figcaption>Flat shading using one normal per face.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/after_normal.png" alt="Teapot rendered with area-weighted vertex normals" style="width: 100%;"/>
+				<figcaption>Phong shading using area-weighted vertex normals.</figcaption>
+			</figure>
+		</div>
 
 		<h3>Part 4: Edge flip</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		<p>
+			An edge flip operates on two triangles that share an interior edge. It keeps
+			the same vertices, edges, halfedges, and faces, but replaces the shared
+			diagonal with the other diagonal of the quadrilateral. In my implementation,
+			I immediately return <code>e0</code> if it is a boundary edge because such an
+			edge does not have two adjacent interior triangles.
+		</p>
+		<p>
+			For an interior edge, <code>h0</code> and <code>h1</code> are the two
+			halfedges of <code>e0</code>. Their starting vertices are <code>v0</code> and
+			<code>v1</code>. I first save the other four local halfedges,
+			<code>h10</code>, <code>h00</code>, <code>h01</code>, and
+			<code>h11</code>, together with their vertices, edges, and the two faces.
+			The opposite vertices are <code>v00</code> in <code>f0</code> and
+			<code>v11</code> in <code>f1</code>. Saving all of these iterators before
+			rewiring prevents the original neighborhood from being lost when the
+			<code>next</code> iterators are changed.
+		</p>
+		<p>
+			Before the flip, <code>e0</code> connects <code>v0</code> and
+			<code>v1</code>. I reuse <code>h0</code> and <code>h1</code> for the flipped
+			edge, changing their starting vertices to <code>v11</code> and
+			<code>v00</code>, respectively. Therefore, <code>e0</code> now connects the
+			two opposite vertices <code>v11</code> and <code>v00</code>. The two face
+			cycles change as follows:
+		</p>
+
+		<table style="width: 100%; border-collapse: collapse; text-align: left;">
+			<tr>
+				<th style="border: 1px solid #aaa; padding: 8px;">Face</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Before the flip</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">After the flip</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Representative</th>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0</code></td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h0 &rarr; h10 &rarr; h00 &rarr; h0</code><br/>
+					<code>v0 &rarr; v1 &rarr; v00</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h0 &rarr; h00 &rarr; h01 &rarr; h0</code><br/>
+					<code>v11 &rarr; v00 &rarr; v0</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0-&gt;halfedge() = h0</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1</code></td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h1 &rarr; h01 &rarr; h11 &rarr; h1</code><br/>
+					<code>v1 &rarr; v0 &rarr; v11</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h1 &rarr; h11 &rarr; h10 &rarr; h1</code><br/>
+					<code>v00 &rarr; v11 &rarr; v1</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1-&gt;halfedge() = h1</code></td>
+			</tr>
+		</table>
+
+		<p>
+			I use <code>setNeighbors(next, twin, vertex, edge, face)</code> to reset all
+			five iterators of the six affected halfedges. The outside twin and edge
+			iterators of <code>h00</code>, <code>h01</code>, <code>h10</code>, and
+			<code>h11</code> do not change, but their <code>next</code> and face
+			assignments are updated to form the two cycles above. I then set the
+			representative halfedges to <code>v0: h01</code>, <code>v1: h10</code>,
+			<code>v00: h00</code>, and <code>v11: h11</code>, and keep
+			<code>e0-&gt;halfedge() = h0</code>.
+		</p>
+		<p>
+			My main debugging strategy was to record the complete local neighborhood
+			before changing it and then explicitly reassign every iterator in the two
+			triangles. Checking that both three-halfedge cycles closed correctly and that
+			each representative halfedge started at its vertex made it easier to catch
+			incorrect <code>next</code> or face assignments. I also tested consecutive
+			flips in the same area of the teapot to confirm that the resulting mesh
+			remained connected.
+		</p>
+
+		<h4>Results</h4>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip10.png" alt="Teapot mesh before the first edge flip" style="width: 100%;"/>
+				<figcaption>Before the first edge flip.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip11.png" alt="Teapot mesh after the first edge flip" style="width: 100%;"/>
+				<figcaption>After the first edge flip.</figcaption>
+			</figure>
+		</div>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center; margin-top: 18px;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip20.png" alt="Teapot mesh before another edge flip" style="width: 100%;"/>
+				<figcaption>Before another nearby edge flip.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip21.png" alt="Teapot mesh after another edge flip" style="width: 100%;"/>
+				<figcaption>After the nearby edge flip.</figcaption>
+			</figure>
+		</div>
+		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center; margin-top: 18px;">
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip30.png" alt="Teapot mesh before a third edge flip" style="width: 100%;"/>
+				<figcaption>Before a third edge flip.</figcaption>
+			</figure>
+			<figure style="width: 50%; margin: 0;">
+				<img src="assets/flip31.png" alt="Teapot mesh after a third edge flip" style="width: 100%;"/>
+				<figcaption>After the third edge flip.</figcaption>
+			</figure>
+		</div>
 
 		<h3>Part 5: Edge split</h3>
 		<p>
@@ -452,9 +629,12 @@
 
 		<h4>Subdivision results</h4>
 		<p>
-			Each subdivision step increases the triangle density and smooths the control
-			mesh. On the teapot, the initially visible facets become progressively less
-			pronounced, while the body, handle, and spout develop smoother silhouettes.
+			Unlike area-weighted vertex normals, which only change the lighting, Loop
+			subdivision makes the object smooth by changing the mesh itself. Each
+			subdivision step splits edges, increases the number of triangles, changes the
+			mesh connectivity, and moves vertices to their weighted positions. On the
+			teapot, the initially visible facets become progressively less pronounced,
+			while the body, handle, and spout develop smoother geometry and silhouettes.
 		</p>
 		<div style="display: flex; gap: 12px; align-items: flex-start; text-align: center;">
 			<figure style="width: 33.33%; margin: 0;">
@@ -484,9 +664,10 @@
 			diagonals do not give all cube corners identical one-ring neighborhoods.
 			Because Loop weights depend on vertex degree and neighboring positions, this
 			asymmetric triangulation produces unequal updates even though the original
-			cube geometry is symmetric. Pre-splitting the faces and flipping diagonals to
-			create a balanced, symmetric triangulation gives corresponding corners the
-			same degree and one-ring structure, reducing the asymmetry.
+			cube geometry is symmetric. To balance the triangulation, I split the
+			diagonal edge on each of the cube's six faces. This creates one center vertex
+			and four triangles on every face, giving corresponding cube corners the same
+			degree and one-ring structure.
 		</p>
 		<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; text-align: center;">
 			<figure style="width: 31%; margin: 0;">
@@ -508,6 +689,183 @@
 			<figure style="width: 31%; margin: 0;">
 				<img src="assets/cube4.png" alt="Cube after four Loop subdivision steps" style="width: 100%;"/>
 				<figcaption>After four steps.</figcaption>
+			</figure>
+		</div>
+
+		<h4>Cube after symmetric pre-splitting</h4>
+		<p>
+			After the six face diagonals are split, each original cube corner is connected
+			to its three adjacent corners and the centers of its three incident faces.
+			Therefore, all eight original corners have degree six and receive equivalent
+			Loop subdivision weights. Compared with the unprocessed cube above, the
+			pre-split cube becomes round in a much more symmetric way and develops a more
+			uniform triangle distribution.
+		</p>
+		<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; text-align: center;">
+			<figure style="width: 47%; margin: 0;">
+				<img src="assets/split_cube0.png" alt="Cube after pre-splitting all six face diagonals" style="width: 100%;"/>
+				<figcaption>Cube after splitting all six face diagonals.</figcaption>
+			</figure>
+			<figure style="width: 47%; margin: 0;">
+				<img src="assets/split_cube1.png" alt="Pre-split cube after one Loop subdivision step" style="width: 100%;"/>
+				<figcaption>Pre-split cube after one subdivision step.</figcaption>
+			</figure>
+			<figure style="width: 47%; margin: 0;">
+				<img src="assets/split_cube2.png" alt="Pre-split cube after two Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>Pre-split cube after two subdivision steps.</figcaption>
+			</figure>
+			<figure style="width: 47%; margin: 0;">
+				<img src="assets/split_cube3.png" alt="Pre-split cube after three Loop subdivision steps" style="width: 100%;"/>
+				<figcaption>Pre-split cube after three subdivision steps.</figcaption>
+			</figure>
+		</div>
+
+		<h4>Extra Credit: \(\sqrt{3}\) subdivision</h4>
+		<p>
+			I also implemented \(\sqrt{3}\) subdivision as an alternative smoothing
+			scheme for closed triangle meshes. Unlike Loop subdivision, which inserts a
+			new vertex on every original edge and divides each triangle into four,
+			\(\sqrt{3}\) subdivision inserts one new vertex at the center of every
+			original face, divides the face into three triangles, and then flips all
+			original interior edges. As a result, the number of triangles grows by a
+			factor of three per iteration rather than four.
+		</p>
+
+		<h5>1. Relax the original vertices</h5>
+		<p>
+			I first mark every original vertex with <code>isNew = false</code>. For an
+			original vertex \(v\) of degree \(n\), I traverse its one-ring neighborhood
+			with <code>h = h-&gt;twin()-&gt;next()</code> and sum the positions of its
+			neighbors. I compute the valence-dependent weight
+		</p>
+		\[
+			\alpha_n=\frac{4-2\cos(2\pi/n)}{9},
+		\]
+		<p>
+			and store the relaxed position
+		</p>
+		\[
+			v_{\text{new}}=(1-\alpha_n)v+
+			\frac{\alpha_n}{n}\sum_{i=1}^{n}v_i
+		\]
+
+		<h5>2. Save the original topology</h5>
+		<p>
+			Before creating any new elements, I save every original edge in
+			<code>originalEdges</code> and every original face in
+			<code>originalFaces</code>. These saved iterators ensure that the current
+			iteration processes only the input mesh, rather than recursively processing
+			faces and edges that it creates.
+		</p>
+
+		<h5>3. Split each original face at its centroid</h5>
+		<p>
+			For each non-boundary triangular face, I obtain its vertices
+			<code>v0</code>, <code>v1</code>, and <code>v2</code> from
+			<code>h0</code>, <code>h1</code>, and <code>h2</code>. The new vertex
+			<code>vc</code> is placed at the face centroid:
+		</p>
+		\[
+			v_c=\frac{v_0+v_1+v_2}{3}.
+		\]
+		<p>
+			I mark <code>vc</code> as new, connect it to all three original vertices,
+			and create three edges, six halfedges, and two additional faces. The original
+			face is reused as <code>f0</code>, while <code>f1</code> and
+			<code>f2</code> are new. I rebuild the three face cycles as follows:
+		</p>
+
+		<table style="width: 100%; border-collapse: collapse; text-align: left;">
+			<tr>
+				<th style="border: 1px solid #aaa; padding: 8px;">Face</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Vertex cycle</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Halfedge cycle</th>
+				<th style="border: 1px solid #aaa; padding: 8px;">Representative</th>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0</code> (reused)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>v0 &rarr; v1 &rarr; vc</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h0 &rarr; in1 &rarr; out0 &rarr; h0</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f0-&gt;halfedge() = h0</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1</code> (new)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>v1 &rarr; v2 &rarr; vc</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h1 &rarr; in2 &rarr; out1 &rarr; h1</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f1-&gt;halfedge() = h1</code></td>
+			</tr>
+			<tr>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2</code> (new)</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>v2 &rarr; v0 &rarr; vc</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;">
+					<code>h2 &rarr; in0 &rarr; out2 &rarr; h2</code>
+				</td>
+				<td style="border: 1px solid #aaa; padding: 8px;"><code>f2-&gt;halfedge() = h2</code></td>
+			</tr>
+		</table>
+
+		<p>
+			The new twin pairs are <code>(in0, out0)</code>,
+			<code>(in1, out1)</code>, and <code>(in2, out2)</code>. I also assign
+			representative halfedges to all four vertices and the three new edges. This
+			turns one original triangle into three triangles that share
+			<code>vc</code>.
+		</p>
+
+		<h5>4. Flip every original interior edge</h5>
+		<p>
+			After all faces have been split, I iterate over
+			<code>originalEdges</code> and flip every non-boundary edge. After the
+			face-split step, each original edge still connects its two original vertices.
+			Flipping that edge replaces it with an edge connecting the two new centroid
+			vertices on its opposite sides. This completes the Root-3 topology.
+		</p>
+
+		<h5>5. Commit the relaxed old-vertex positions</h5>
+		<p>
+			Finally, I copy <code>newPosition</code> into <code>position</code> only for
+			vertices whose <code>isNew</code> flag is false. The new centroid vertices
+			keep the positions assigned during the face-split stage. Two iterations give
+			a one-to-nine refinement of each original triangle, compared with the
+			one-to-sixteen refinement produced by two Loop subdivision steps.
+		</p>
+
+		<figure>
+			<img src="assets/root3_subdivision_steps.svg" alt="Three topology stages of Root-3 subdivision" style="width: 100%;"/>
+		</figure>
+
+		<h5>\(\sqrt{3}\) subdivision results</h5>
+		<p>
+			Compared with regular Loop subdivision, Root-3 subdivision increases the
+			number of triangles by a factor of three per step rather than four. Therefore,
+			after the same number of iterations, the Root-3 mesh remains less dense and
+			its smoothing progresses more gradually, while Loop subdivision refines and
+			rounds the model more quickly. The two methods also produce different
+			connectivity: Loop inserts new vertices on the original edges, whereas
+			Root-3 inserts vertices at face centroids and flips the original edges.
+		</p>
+		<div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; text-align: center;">
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/root3_0.png" alt="Original teapot before Root-3 subdivision" style="width: 100%;"/>
+				<figcaption>Original teapot mesh.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/root3_1.png" alt="Teapot after one Root-3 subdivision step" style="width: 100%;"/>
+				<figcaption>After one Root-3 subdivision step.</figcaption>
+			</figure>
+			<figure style="width: 31%; margin: 0;">
+				<img src="assets/root3_2.png" alt="Teapot after two Root-3 subdivision steps" style="width: 100%;"/>
+				<figcaption>After two Root-3 subdivision steps.</figcaption>
 			</figure>
 		</div>
 
@@ -533,17 +891,6 @@
 
 		<h2>(Optional) Section III: Potential Extra Credit - Art Competition: Model something Creative</h2>
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
 		</div>
 	</body>
 </html>
